@@ -1,0 +1,32 @@
+# Игнорируем файлы операционных систем
+.DS_Store
+Thumbs.db
+
+# Игнорируем виртуальные окружения
+venv/
+env/
+.venv/
+
+# Игнорируем файлы Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Логи и отладочные данные
+*.log
+*.out
+
+# Файлы Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Исключаем файлы CSV, JSON и другие результаты
+*.csv
+*.json
+
+# Игнорируем файлы окружения и конфигураций IDE
+.vscode/
+.idea/
+*.swp
+
+# Файлы конфигурации среды
+.env
