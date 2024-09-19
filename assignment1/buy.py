@@ -8,7 +8,7 @@ class Buy:
         self.department = generate.generate_department()
         self.shop = generate.generate_shop(self.department)
         self.category = generate.generate_categories(self.department)
-        self.brand = generate.generate_brands(self.category)
+        self.brand = generate.generate_brands(self.category, self.department)
         self.cost = generate.generate_cost(self.category, self.department) * self.quantity
         self.time = generate.generate_random_datetime()
         self.coordinates = random.choice(shops[self.department][self.shop])
@@ -25,6 +25,3 @@ class Buy:
             def generate_bank_card_number(self):
                 bank_card_number = f"{self.pre}{random.randint(10**11, 10**12 - 1)}"  
                 return bank_card_number
-            
-
-   

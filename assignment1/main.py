@@ -28,5 +28,5 @@ if __name__ == "__main__":
     end_time = time.time()
 
     print(f"Сгенерирован за {(end_time - start_time):.2f}")
-    df.to_csv('1\purchases.csv', index=False, encoding='utf-8')
+    df.to_csv('assignment1\purchases.csv', index=False, encoding='utf-8')
     print(df.head(10))
