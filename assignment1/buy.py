@@ -17,14 +17,12 @@ class Buy:
 
     class Card:
             def __init__(self, pm_sys_weights, bank_weights):
-                self.payment_systems = ['МИР', 'MasterCard', 'Visa']
-                self.banks = ['Сбер', 'Т-банк', 'ВТБ', 'Альфа банк']
-                self.payment_system = generate.weighted_choice(self.payment_systems, pm_sys_weights)
-                self.bank = generate.weighted_choice(self.banks, bank_weights)
+                self.payment_system = generate.weighted_choice(pm_sys.keys(), pm_sys_weights)
+                self.bank = generate.weighted_choice(pm_sys[self.payment_system].keys(), bank_weights)
                 self.pre = pm_sys[self.payment_system][self.bank]
                 self.bank_card_number = self.generate_bank_card_number()
                 
 
             def generate_bank_card_number(self):
-                bank_card_number = f"{self.pre}{random.randint(10**11, 10**12 - 1)}"  
+                bank_card_number = f"{self.pre}{random.randint(10**11, 10**12 - 1):011d}"  
                 return bank_card_number

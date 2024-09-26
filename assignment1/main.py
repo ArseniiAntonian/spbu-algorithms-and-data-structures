@@ -1,6 +1,5 @@
 import pandas as pd
 from buy import Buy
-import time
 
 def generate_data(n, pm_sys_weights, bank_weights):
     data = []
@@ -34,13 +33,12 @@ if __name__ == "__main__":
         print(f"Введите вес для банка {banks[i]}: ")
         weight = float(input())
         bank_weights.append(weight)
-    
-    start_time = time.time()
-    data = generate_data(100000, pm_sys_weights, bank_weights)
+    n = int(input("Введите количество строк (минимум 50000) :"))
+    if n < 50000:
+        print('Количество строк не может быть менее 50000. Установлено значение 50000')
+        n = 50000
+    data = generate_data(n, pm_sys_weights, bank_weights)
     df = pd.DataFrame(data)
-    end_time = time.time()
 
-    
     df.to_xml('assignment1/purchases.xml', index=False, encoding='utf-8', root_name='purchases', row_name='purchase')
-    print(f"Сгенерирован за {(end_time - start_time):.2f}")
-    print(df.head(10))
+    print("Датасет сгенерирован")

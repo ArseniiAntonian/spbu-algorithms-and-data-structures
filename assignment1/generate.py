@@ -36,7 +36,7 @@ def generate_quantity():
 
 def generate_cost(category, department):
     if category in list(low_price_category[department].keys()):
-        return random.randint(100, 5000)
+        return random.randint(100, 1000)
     elif category in list(medium_price_category[department].keys()):
         return random.randint(5001, 20000)
     elif category in list(high_price_category[department].keys()):
