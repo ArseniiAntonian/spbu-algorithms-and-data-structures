@@ -3,8 +3,23 @@ from buy import Buy
 
 def generate_data(n, pm_sys_weights, bank_weights):
     data = []
+    cards = []
+    card_usage = {}
     for _ in range(n):
-        buy = Buy(pm_sys_weights, bank_weights)
+        while True:
+            buy = Buy(pm_sys_weights, bank_weights)
+            card_number = buy.card_number
+
+            if card_number in card_usage:
+                if card_usage[card_number] < 5:
+                    card_usage[card_number] += 1
+                    break
+                else:
+                    continue  
+            else:
+                card_usage[card_number] = 1  
+                break
+        
         record = {
             'shop': buy.shop,
             'coordinates': buy.coordinates,
