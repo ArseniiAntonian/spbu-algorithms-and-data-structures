@@ -3,9 +3,9 @@ from data import low_price_category, medium_price_category, high_price_category,
 from datetime import datetime, timedelta
 
 def generate_random_datetime():
-    delta_days = (datetime(2024, 9, 15) - datetime(2020, 1, 1)).days
+    delta_days = (datetime(2024, 9, 15) - datetime(2021, 1, 1)).days
     random_days = random.randint(0, delta_days)
-    random_date = datetime(2020, 1, 1) + timedelta(days=random_days)
+    random_date = datetime(2021, 1, 1) + timedelta(days=random_days)
     random_time = timedelta(hours=random.randint(10-3, 21-3), minutes=random.randint(0, 59), seconds=random.randint(0,59))
     full_datetime = random_date + random_time
     
@@ -32,7 +32,7 @@ def generate_brands(category, department):
         return random.choice(high_price_category[department][category])
 
 def generate_quantity():
-    return random.randint(5, 100)
+    return random.randint(5, 20)
 
 def generate_cost(category, department):
     if category in list(low_price_category[department].keys()):
