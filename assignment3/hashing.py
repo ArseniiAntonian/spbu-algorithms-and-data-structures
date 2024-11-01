@@ -8,7 +8,7 @@ def hash_sha1(data):
     sha1 = hashlib.sha1(data_bytes)
     return sha1.hexdigest()
 
-with open('assignment3/real_phones.txt', 'r') as f:
+with open('assignment3/sources/real_phones.txt', 'r') as f:
     phone_numbers = [line.strip()[-11:] for line in f]
 
 
@@ -29,11 +29,11 @@ for salt in salts:
         sha1_hashed = hash_sha1(str(salted_phone))
         sha1_hashes.append(sha1_hashed)
 
-    with open(f'assignment3/salted_and_hashed/sha3_hashes_salt_{salt}.txt', 'w') as f_sha3:
+    with open(f'assignment3/sources/salted_and_hashed/sha3_hashes_salt_{salt}.txt', 'w') as f_sha3:
         for sha3_hash in sha3_hashes:
             f_sha3.write(sha3_hash + '\n')
 
-    with open(f'assignment3/salted_and_hashed/sha1_hashes_salt_{salt}.txt', 'w') as f_sha1:
+    with open(f'assignment3/sources/salted_and_hashed/sha1_hashes_salt_{salt}.txt', 'w') as f_sha1:
         for sha1_hash in sha1_hashes:
             f_sha1.write(sha1_hash + '\n')
 

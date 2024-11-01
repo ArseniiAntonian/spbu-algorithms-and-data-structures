@@ -1,7 +1,7 @@
-with open('assignment3/cracked.txt', 'r') as hf:
+with open('assignment3/sources/cracked.txt', 'r') as hf:
         salted_phones = [int(line.strip()[-11:]) for line in hf.readlines()]
     
-with open('assignment3/phones.txt', 'r') as rf:
+with open('assignment3/scources/phones.txt', 'r') as rf:
     real_phones = [int(line.strip()) for line in rf.readlines()]
 
 for i in salted_phones:
@@ -15,9 +15,8 @@ for i in salted_phones:
 
 print(f'Найденная соль: {salt}')
 
-with open('assignment3/cracked.txt', 'r') as phones, open('assignment3/real_phones.txt', 'w') as real_phones:
+with open('assignment3/sources/cracked.txt', 'r') as phones, open('assignment3/sources/real_phones.txt', 'w') as real_phones:
     for line in phones:
         real_phone = str(int(line.strip()[-11:]) - salt)
         real_phones.write(real_phone + '\n')
 
-# 58909967 3 hashcat -m 0 -a 3 C:\Users\zvnlxn\IT\algorithms_and_data_structures\assignment3\hashes.txt 89?d?d?d?d?d?d?d?d?d -o C:\Users\zvnlxn\IT\algorithms_and_data_structures\assignment3\cracked.txt
