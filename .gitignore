@@ -6,6 +6,7 @@ Thumbs.db
 venv/
 env/
 .venv/
+.conda/
 
 # Игнорируем файлы Python
 __pycache__/
