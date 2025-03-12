@@ -1,150 +1,210 @@
-import tkinter as tk
-from tkinter import messagebox
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QMessageBox, QHBoxLayout, QSpinBox
+from PyQt5.QtCore import Qt
 import networkx as nx
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-def nearest_neighbor(G: nx.DiGraph, start_node):
-    visited = set([start_node])
-    path = [start_node]
-    total_distance = 0
-    v = start_node
-
-    while len(visited) < len(G.nodes):
-        neighbors = list(G.neighbors(v))
-        min_distance = float('inf')
-        nearest_node = None
-
-        for u in neighbors:
-            if u not in visited and G[v][u]['weight'] < min_distance:
-                min_distance = G[v][u]['weight']
-                nearest_node = u
-
-        if nearest_node is None:
-            return "Нет решения", path, total_distance
-
-        path.append(nearest_node)
-        visited.add(nearest_node)
-        total_distance += min_distance
-        v = nearest_node
-
-    if G.has_edge(v, start_node):
-        total_distance += G[v][start_node]['weight']
-        path.append(start_node)
-    else:
-        return "Невозможно вернуться", path, total_distance
-
-    return path, total_distance
-
-G = None
-
-def build_graph_from_input():
-    global G
-    G = nx.DiGraph()
-    input_text = text_edges.get("1.0", tk.END).strip()
-    if not input_text:
-        messagebox.showerror("Ошибка", "Пожалуйста, введите данные для графа.")
-        return
-    lines = input_text.splitlines()
-    edges = []
-    for line in lines:
-        parts = line.split(',')
-        if len(parts) != 3:
-            messagebox.showerror("Ошибка", f"Неверный формат строки:\n{line}")
+class GraphApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        self.G = nx.DiGraph()
+        self.use_knn = False  
+        self.K = 2  
+    
+    def initUI(self):
+        layout = QVBoxLayout()
+        
+        self.label_edges = QLabel("Введите ребра графа (узел1, узел2, вес):")
+        layout.addWidget(self.label_edges)
+        
+        self.text_edges = QTextEdit()
+        self.text_edges.setPlainText("a, b, 3\na, c, 5\nb, c, 2\nc, a, 4\nc, b, 8\nd, a, 1\nc, d, 7")
+        layout.addWidget(self.text_edges)
+        
+        self.btn_create = QPushButton("Создать граф")
+        self.btn_create.clicked.connect(self.build_graph_from_input)
+        layout.addWidget(self.btn_create)
+        
+        self.canvas = FigureCanvas(plt.figure())
+        layout.addWidget(self.canvas)
+        
+        controls_layout = QHBoxLayout()
+        self.label_start = QLabel("Начальный узел:")
+        controls_layout.addWidget(self.label_start)
+        
+        self.entry_start = QLineEdit("a")
+        controls_layout.addWidget(self.entry_start)
+        
+        self.btn_run = QPushButton("Выполнить алгоритм")
+        self.btn_run.clicked.connect(self.run_algorithm)
+        controls_layout.addWidget(self.btn_run)
+        
+        self.btn_toggle_knn = QPushButton("Использовать k-NN")
+        self.btn_toggle_knn.clicked.connect(self.toggle_knn)
+        controls_layout.addWidget(self.btn_toggle_knn)
+        
+        self.spin_k = QSpinBox()
+        self.spin_k.setMinimum(1)
+        self.spin_k.setValue(2)
+        self.spin_k.valueChanged.connect(self.update_k)
+        controls_layout.addWidget(QLabel("K:"))
+        controls_layout.addWidget(self.spin_k)
+        
+        layout.addLayout(controls_layout)
+        
+        self.text_result = QTextEdit()
+        self.text_result.setReadOnly(True)
+        layout.addWidget(self.text_result)
+        
+        self.setLayout(layout)
+        self.setWindowTitle("Алгоритм ближайшего соседа / k-NN")
+        self.resize(800, 600)
+    
+    def build_graph_from_input(self):
+        self.G.clear()
+        input_text = self.text_edges.toPlainText().strip()
+        if not input_text:
+            QMessageBox.critical(self, "Ошибка", "Пожалуйста, введите данные для графа.")
             return
-        u = parts[0].strip()
-        v = parts[1].strip()
-        try:
-            weight = float(parts[2].strip())
-        except ValueError:
-            messagebox.showerror("Ошибка", f"Неверный вес в строке:\n{line}")
+        
+        lines = input_text.split('\n')
+        edges = []
+        for line in lines:
+            parts = line.split(',')
+            if len(parts) != 3:
+                QMessageBox.critical(self, "Ошибка", f"Неверный формат строки: {line}")
+                return
+            u, v = parts[0].strip(), parts[1].strip()
+            try:
+                weight = float(parts[2].strip())
+            except ValueError:
+                QMessageBox.critical(self, "Ошибка", f"Неверный вес в строке: {line}")
+                return
+            edges.append((u, v, weight))
+        
+        self.G.add_weighted_edges_from(edges)
+        QMessageBox.information(self, "Успех", "Граф успешно создан!")
+        self.draw_graph()
+    
+    def draw_graph(self, path_edges=None):
+        fig, ax = plt.subplots()
+        pos = nx.spring_layout(self.G)
+        nx.draw(self.G, pos, ax=ax, with_labels=True, node_color='lightblue', edge_color='gray')
+        edge_labels = nx.get_edge_attributes(self.G, 'weight')
+        nx.draw_networkx_edge_labels(self.G, pos, edge_labels=edge_labels, ax=ax)
+        
+        if path_edges:
+            nx.draw_networkx_edges(self.G, pos, ax=ax, edgelist=path_edges, edge_color='red', width=2)
+        
+        self.canvas.figure = fig
+        self.canvas.draw()
+
+    def heuristic(self, node, visited):
+        remaining = set(self.G.nodes) - visited
+        if not remaining:
+            return 0  
+
+        total = 0
+        count = 0
+
+        for n in remaining:
+            weights = [self.G[n][u]['weight'] for u in remaining if self.G.has_edge(n, u)]
+            if weights:  
+                total += min(weights)
+                count += 1
+
+        return total / count if count > 0 else float('inf') 
+
+    
+    def knn_algorithm(self, start_node):
+        visited = {start_node}
+        path = [start_node]
+        total_distance = 0
+        v = start_node
+
+        while len(visited) < len(self.G.nodes):
+            neighbors = sorted(
+                [(u, self.G[v][u]['weight']) for u in self.G.neighbors(v) if u not in visited],
+                key=lambda x: x[1]
+            )
+
+            if not neighbors:
+                break
+
+            candidates = [(u, d, self.heuristic(u, visited)) for u, d in neighbors[:self.K]]
+            candidates.sort(key=lambda x: x[2])  
+
+            chosen_node = candidates[0][0] 
+
+            path.append(chosen_node)
+            visited.add(chosen_node)
+            total_distance += self.G[v][chosen_node]['weight']
+            v = chosen_node
+
+        if len(visited) == len(self.G.nodes) and self.G.has_edge(v, start_node):
+            total_distance += self.G[v][start_node]['weight']
+            path.append(start_node)
+
+        return path, total_distance
+    
+    def nearest_neighbor(self, start_node):
+        visited = {start_node}
+        path = [start_node]
+        total_distance = 0
+        v = start_node
+        
+        while len(visited) < len(self.G.nodes):
+            neighbors = [
+                (u, self.G[v][u]['weight']) for u in self.G.neighbors(v) if u not in visited
+            ]
+            
+            if not neighbors:
+                break
+            
+            
+            chosen_node, min_weight = min(neighbors, key=lambda x: x[1])
+            
+            path.append(chosen_node)
+            visited.add(chosen_node)
+            total_distance += min_weight
+            v = chosen_node
+       
+        if len(visited) == len(self.G.nodes) and self.G.has_edge(v, start_node):
+            total_distance += self.G[v][start_node]['weight']
+            path.append(start_node)
+        
+        return path, total_distance
+    
+    def run_algorithm(self):
+        if not self.G.nodes:
+            QMessageBox.critical(self, "Ошибка", "Граф не создан.")
             return
-        edges.append((u, v, weight))
-    G.add_weighted_edges_from(edges)
-    messagebox.showinfo("Успех", "Граф успешно создан!")
-    draw_graph(G, path_edges=None)
-
-def draw_graph(G, path_edges=None):
-    fig, ax = plt.subplots(figsize=(6, 4))
-    pos = nx.spring_layout(G)
-    nx.draw_networkx_nodes(G, pos, ax=ax, node_color='blue', node_size=400)
-    nx.draw_networkx_edges(G, pos, ax=ax, edge_color='gray', width=2, arrows=True, arrowsize=10, connectionstyle='arc3,rad=0.1')
-    nx.draw_networkx_labels(G, pos, ax=ax, font_size=10, font_color='white')
-    if path_edges:
-        nx.draw_networkx_edges(
-            G, pos, edgelist=path_edges, ax=ax,
-            edge_color='red', width=2, arrows=True, connectionstyle='arc3,rad=0.1'
-        )
-    edge_labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, ax=ax, edge_labels=edge_labels)
-    ax.set_axis_off()
-
-    for widget in frame_canvas.winfo_children():
-        widget.destroy()
-
-    canvas = FigureCanvasTkAgg(fig, master=frame_canvas)
-    canvas.draw()
-    canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-def run_algorithm():
-    global G
-    if G is None or len(G.nodes) == 0:
-        messagebox.showerror("Ошибка", "Граф не создан. Сначала создайте граф.")
-        return
-    start_node = entry_start.get().strip()
-    if start_node == "":
-        messagebox.showerror("Ошибка", "Введите начальный узел.")
-        return
-    if start_node not in G.nodes:
-        messagebox.showerror("Ошибка", f"Узел '{start_node}' отсутствует в графе.")
-        return
-    result = nearest_neighbor(G, start_node)
-    if isinstance(result[0], str):  # Обнаружена ошибка
-        path, distance = result[1], result[2]
-        result_message = f"Ошибка: {result[0]}\nПуть: {' -> '.join(path)}\nОбщая длина: {distance}"
-    else:
-        path, distance = result
-        result_message = f"Путь: {' -> '.join(path)}, общая длина: {distance}"
-    text_result.delete("1.0", tk.END)
-    text_result.insert(tk.END, result_message)
-    path_edges = list(zip(path[:-1], path[1:])) if len(path) > 1 else None
-    draw_graph(G, path_edges)
-
-root = tk.Tk()
-root.title("Интерфейс алгоритма ближайшего соседа")
-root.geometry("1920x1080")
-
-frame_input = tk.Frame(root)
-frame_input.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-
-lbl_edges = tk.Label(frame_input, text="Введите ребра графа (формат: узел1, узел2, вес):", font=("Arial", 12))
-lbl_edges.pack(anchor=tk.W, padx=5, pady=5)
-
-text_edges = tk.Text(frame_input, height=8, font=("Arial", 12))
-text_edges.pack(fill=tk.X, padx=5, pady=5)
-example = "a, b, 3\na, c, 5\nb, c, 2\nc, a, 4\nc, b, 8\nd, a, 1\nc, d, 7"
-text_edges.insert(tk.END, example)
-
-btn_create = tk.Button(frame_input, text="Создать граф", font=("Arial", 12), command=build_graph_from_input)
-btn_create.pack(padx=5, pady=5)
-
-frame_canvas = tk.Frame(root)
-frame_canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-frame_controls = tk.Frame(root)
-frame_controls.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
-
-lbl_start = tk.Label(frame_controls, text="Начальный узел:", font=("Arial", 12))
-lbl_start.pack(side=tk.LEFT, padx=5, pady=5)
-
-entry_start = tk.Entry(frame_controls, font=("Arial", 12))
-entry_start.pack(side=tk.LEFT, padx=5, pady=5)
-entry_start.insert(0, "a")
-
-btn_run = tk.Button(frame_controls, text="Выполнить алгоритм", font=("Arial", 12), command=run_algorithm)
-btn_run.pack(side=tk.LEFT, padx=5, pady=5)
-
-text_result = tk.Text(frame_controls, height=4, font=("Arial", 12))
-text_result.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-root.mainloop()
+        
+        start_node = self.entry_start.text().strip()
+        if start_node not in self.G.nodes:
+            QMessageBox.critical(self, "Ошибка", "Введите корректный начальный узел.")
+            return
+        
+        if self.use_knn:
+            path, distance = self.knn_algorithm(start_node)
+        else:
+            path, distance = self.nearest_neighbor(start_node)
+        
+        result_message = f"Путь: {' -> '.join(path)}, Общая длина: {distance}"
+        self.text_result.setPlainText(result_message)
+        self.draw_graph(list(zip(path[:-1], path[1:])) if len(path) > 1 else None)
+    
+    def toggle_knn(self):
+        self.use_knn = not self.use_knn
+        self.btn_toggle_knn.setText("Выкл knn" if self.use_knn else "Вкл knn")
+    
+    def update_k(self, value):
+        self.K = value
+        
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = GraphApp()
+    window.show()
+    sys.exit(app.exec_())
