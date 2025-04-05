@@ -34,7 +34,6 @@ class GraphApp(QWidget):
         
         self.chk_cauchy = QCheckBox("Отжиг Коши")
         algo_layout.addWidget(self.chk_cauchy)
-
         layout.addLayout(algo_layout)
 
         controls_layout = QHBoxLayout()
@@ -45,9 +44,9 @@ class GraphApp(QWidget):
         self.btn_run = QPushButton("Выполнить алгоритм")
         self.btn_run.clicked.connect(self.run_algorithm)
         controls_layout.addWidget(self.btn_run)
-
         layout.addLayout(controls_layout)
 
+        
         graph_gen_layout = QHBoxLayout()
         self.spin_nodes = QSpinBox(minimum=3, maximum=100, value=10)
         graph_gen_layout.addWidget(QLabel("Число узлов:"))
@@ -55,8 +54,38 @@ class GraphApp(QWidget):
         self.btn_generate_graph = QPushButton("Создать случайный граф")
         self.btn_generate_graph.clicked.connect(self.generate_random_graph)
         graph_gen_layout.addWidget(self.btn_generate_graph)
-
         layout.addLayout(graph_gen_layout)
+
+        
+        hyper_group = QGroupBox("Гиперпараметры алгоритмов")
+        hyper_form = QFormLayout()
+        
+        self.spin_T = QDoubleSpinBox()
+        self.spin_T.setRange(1, 10000)
+        self.spin_T.setDecimals(2)
+        self.spin_T.setValue(1000)
+        hyper_form.addRow("T:", self.spin_T)
+
+        self.spin_Tmin = QDoubleSpinBox()
+        self.spin_Tmin.setRange(0.0001, 100)
+        self.spin_Tmin.setDecimals(4)
+        self.spin_Tmin.setValue(0.001)
+        hyper_form.addRow("Tmin:", self.spin_Tmin)
+
+        self.spin_a = QDoubleSpinBox()
+        self.spin_a.setRange(0.9, 1.0)
+        self.spin_a.setSingleStep(0.001)
+        self.spin_a.setDecimals(3)
+        self.spin_a.setValue(0.995)
+        hyper_form.addRow("alpha:", self.spin_a)
+
+        self.spin_k = QSpinBox()
+        self.spin_k.setRange(1, 100)
+        self.spin_k.setValue(3)
+        hyper_form.addRow("K:", self.spin_k)
+
+        hyper_group.setLayout(hyper_form)
+        layout.addWidget(hyper_group)
 
         self.text_result = QTextEdit(readOnly=True)
         layout.addWidget(self.text_result)
@@ -124,7 +153,12 @@ class GraphApp(QWidget):
     def k_nearest_neighbors(self, start):
         best_path = None
         best_dist = float('inf')
-        for node in self.G.nodes:
+        k = self.spin_k.value()
+        nodes_to_try = list(self.G.nodes)
+    
+        if k < len(nodes_to_try):
+            nodes_to_try = random.sample(nodes_to_try, k)
+        for node in nodes_to_try:
             path, dist = self.nearest_neighbor(node)
             if dist < best_dist:
                 best_path = path
@@ -135,9 +169,11 @@ class GraphApp(QWidget):
         return best_path, best_dist
 
     def simulated_annealing(self, start, use_cauchy):
-       
+        
         nodes, dist = self.nearest_neighbor(start)
-        T, Tmin, a = 1000, 1e-3, 0.995
+        T = self.spin_T.value()
+        Tmin = self.spin_Tmin.value()
+        a = self.spin_a.value()
         while T > Tmin:
             i, j = sorted(random.sample(range(len(nodes)), 2))
             n = nodes[:]
